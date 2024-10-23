@@ -1,0 +1,76 @@
+# Set platform
+min_supported_versions = { :ios => '12.0' }
+ # Set minimum iOS version supported
+
+# Use Ruby's require for better error messages
+require_relative '../node_modules/react-native/scripts/react_native_pods'
+require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+
+prepare_react_native_project!
+
+# Use frameworks (if needed)
+linkage = ENV['USE_FRAMEWORKS']
+if linkage != nil
+  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
+  use_frameworks! :linkage => linkage.to_sym
+end
+
+target 'AiReno' do
+  config = use_native_modules!
+
+  #pod 'Expo', :path => '../node_modules/expo/ios'
+  #pod 'EXUpdates', :path => '../node_modules/expo-updates/ios'
+
+  # React Native
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :hermes_enabled => false, # Hermes disabled for now
+    :fabric_enabled => false  # Fabric disabled for now
+  )
+
+  # Permissions
+  permissions_path = '../node_modules/react-native-permissions/ios'
+  pod 'Permission-Camera', :path => "#{permissions_path}/Camera"
+  pod 'Permission-PhotoLibrary', :path => "#{permissions_path}/PhotoLibrary"
+  pod 'Permission-PhotoLibraryAddOnly', :path => "#{permissions_path}/PhotoLibraryAddOnly"
+  pod 'Permission-Notifications', :path => "#{permissions_path}/Notifications"
+  pod 'Permission-MediaLibrary', :path => "#{permissions_path}/MediaLibrary"
+
+  # Vector Icons
+  pod 'RNVectorIcons', :path => '../node_modules/react-native-vector-icons'
+
+  # Additional dependencies
+  pod 'BVLinearGradient', :path => '../node_modules/react-native-linear-gradient'
+  pod 'react-native-safe-area-context', :path => '../node_modules/react-native-safe-area-context'
+
+  # React Native Gesture Handler (if needed)
+  pod 'RNGestureHandler', :path => '../node_modules/react-native-gesture-handler'
+
+  # React Native Screens (if using React Navigation)
+  pod 'RNScreens', :path => '../node_modules/react-native-screens'
+
+  target 'AiRenoTests' do
+    inherit! :complete
+    # Pods for testing
+  end
+
+  # Post-installation actions
+  post_install do |installer|
+    # React Native post-install steps
+    react_native_post_install(installer, config[:reactNativePath])
+
+    # iOS Deployment Target settings
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        # Set minimum deployment target
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
+        
+        # Exclude arm64 architecture for iOS simulator if using M1/M2 Mac
+        config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "arm64"
+        
+        # Disable Bitcode
+        config.build_settings['ENABLE_BITCODE'] = 'NO'
+      end
+    end
+  end
+end
